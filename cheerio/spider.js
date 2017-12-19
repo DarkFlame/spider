@@ -1,19 +1,34 @@
 const cheerio = require('cheerio')
 const axios = require('axios')
 const path = require('path')
+const fs = require('fs')
+const querystring = require('querystring')
 const downloadImg = require('./download')
-let imgSaveDir = 'E:\\tmpImg\\emilia4';
+let imgSaveDir
+let {url,dir} = require('./config')
+
+function parseUrl(url) {
+    let {name,id} = querystring.parse(url.slice(url.indexOf('?')))
+    imgSaveDir = path.resolve(dir,name)
+    if (!fs.existsSync(imgSaveDir)) fs.mkdirSync(imgSaveDir)
+}
+
+async function getPages(url) {
+    let data = await getData(url)
+    const $ = cheerio.load(data)
+    let pageButton = $('.hidden-xs.hidden-sm ul.pagination li:nth-last-child(2) a')
+    return Number(pageButton.text()) || 100
+}
 
 function getData(url) {
     return axios.get(
-        url || "https://wall.alphacoders.com/tags.php?tid=47990&lang=Chinese&page=3"
+        url
     ).then(({data}) => {
-        return data;
+        return data
     })
 }
 
 function getNameAndExt(url) {
-    url = url || 'https://initiate.alphacoders.com/download/wallpaper/692362/images/jpg/1931019150'
     let res = url.match(/wallpaper\/(\d+).*\/([^\/]+)\/(\d+)$/)
     return {
         ext: `.${res[2]}`,
@@ -22,29 +37,19 @@ function getNameAndExt(url) {
 }
 
 async function main() {
-   // let baseUrl = "https://wall.alphacoders.com/tags.php?tid=47990&lang=Chinese&page=";
-   // let baseUrl = "https://wall.alphacoders.com/by_sub_category.php?id=240059&name="
-   //   + "%E5%91%BD%E8%BF%90%2F%E5%A4%96%E5%85%B8+%E5%A3%81%E7%BA%B8&lang=Chinese&page=";
-   let baseUrl ='https://wall.alphacoders.com/by_sub_category.php?id=240281&name=' +
-       '%E4%B8%BA%E7%BE%8E%E5%A5%BD%E7%9A%84%E4%B8%96%E7%95%8C%E7' +
-       '%8C%AE%E4%B8%8A%E7%A5%9D%E7%A6%8F+%E5%A3%81%E7%BA%B8&lang=Chinese&page='
-    // let baseUrl = "https://wall.alphacoders.com/by_sub_category.php?id=174340&name" +
-    //     "=%E5%91%BD%E8%BF%90%E4%B9%8B%E5%A4%9C%E5%89%8D%E4%BC%A0+%E5%A3%81%E7%BA%B8&lang=Chinese&page=";
-    for (let i = 1; i < 200; i++) {
+    parseUrl(url)
+    let pages = await getPages(url)
+    for (let i = 1; i <= pages; i++) {
         try {
-            let data = await getData(baseUrl + i)
+            let data = await getData(`${url}&page=` + i)
             if (!data) continue
-            console.log(baseUrl + i)
             const $ = cheerio.load(data)
             let buttonArr = $('.btn.btn-primary.download-button')
-            let array = []
             for (let j = 0; j < buttonArr.length; j++) {
-                let imageUrl = $(buttonArr[j]).attr('data-href');
-                console.log(imageUrl)
+                let imageUrl = $(buttonArr[j]).attr('data-href')
                 if (imageUrl) {
                     let {name,ext} = getNameAndExt(imageUrl)
-                    let realPath = path.join(imgSaveDir,`${name + ext}`)
-                    console.log(realPath)
+                    let realPath = path.join(imgSaveDir,`${name + `_page${i}_` + ext}`)
                     await  downloadImg(imageUrl,realPath)
                     console.log('donwload finish---------')
                 }

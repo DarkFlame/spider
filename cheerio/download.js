@@ -9,11 +9,11 @@ module.exports =
                 resolve()
             } else {
                 request.head(httpImageUrl,function (err,res,body) {
-                //    console.log('content-type:',res.headers['content-type'])
-                   // console.log('content-length:',res.headers['content-length'])
                     request(httpImageUrl,{timeout: 1500000}).pipe(fs.createWriteStream(localImgUrl)).on('close',() => {
                         console.warn('下载成功' + httpImageUrl + '->' + localImgUrl)
                         resolve()
+                    }).on('data',(chunk)=>{
+                        console.log(`正在下载。。。。。。。。。。。。。${chunk.length}`)
                     })
                 })
             }
