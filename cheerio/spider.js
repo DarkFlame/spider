@@ -7,6 +7,8 @@ const downloadImg = require('./download')
 let imgSaveDir
 let {url,dir} = require('./config')
 
+// var program = require('commander');
+// console.log(program.parse(process.argv))
 function parseUrl(url) {
     let {name,id} = querystring.parse(url.slice(url.indexOf('?')))
     imgSaveDir = path.resolve(dir,name)
